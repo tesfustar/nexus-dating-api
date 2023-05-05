@@ -10,7 +10,7 @@ services:
     ports:
       - 80:8000
     environment:
-      MONGO_URL: mongodb://localhost/nexus-dating-api
+      MONGO_URL: mongodb://31.220.18.115:27017/nexus-dating-api
     depends_on:
       - mongo
   mongo:
