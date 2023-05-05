@@ -25,7 +25,7 @@ jobs:
     - name: Push Docker image to registry
       run: |
         docker tag $IMAGE_NAME $REGISTRY_URL/$IMAGE_NAME
-        if docker login -u $REGISTRY_USERNAME -p $DOCKERHUB_ACCESS_TOKEN $REGISTRY_URL ; then
+        if docker login -u $REGISTRY_USERNAME -p tesfu9503 $REGISTRY_URL ; then
           docker push $REGISTRY_URL/$IMAGE_NAME
         else
           echo "Login failed"
