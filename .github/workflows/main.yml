@@ -23,7 +23,16 @@ jobs:
           docker build -t $IMAGE_TAG .
           docker tag $IMAGE_TAG $REGISTRY_URL/${{ github.repository_owner }}/$IMAGE_TAG
           docker push $REGISTRY_URL/${{ github.repository_owner }}/$IMAGE_TAG
-
+      - name: Kill process on port 8000
+        run: |
+          PORT=8000
+          PID=$(lsof -t -i:$PORT)
+          if [ -n "$PID" ]; then
+            echo "Killing process $PID"
+            kill $PID
+          else
+            echo "No process found on port $PORT"
+          fi
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
