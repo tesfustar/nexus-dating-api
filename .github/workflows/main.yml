@@ -8,8 +8,8 @@ on:
 env:
   IMAGE_NAME: my-express-app
   REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-  REGISTRY_URL: ${{ secrets.REGISTRY_USERNAME }}
+  REGISTRY_PASSWORD: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+  REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
 
 jobs:
   deploy:
