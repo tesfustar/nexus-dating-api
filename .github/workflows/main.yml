@@ -1,0 +1,30 @@
+name: Deploy to VPS
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Docker image
+        run: docker build -t my-express-app .
+      - name: Push Docker image to registry
+        run: |
+          docker tag my-express-app my-registry/my-express-app
+          docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
+          docker push my-registry/my-express-app
+      - name: SSH into VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          script: |
+            docker stop my-express-app || true
+            docker rm my-express-app || true
+            docker pull my-registry/my-express-app
+            docker run -d --restart always --name my-express-app -p 8000:8000 -e MONGO_URL=mongodb://mongo:27017/mydatabase my-registry/my-express-app

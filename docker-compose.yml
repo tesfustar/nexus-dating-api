@@ -8,13 +8,13 @@ services:
     container_name: my-express-container
     restart: always
     ports:
-      - 3000:3000
+      - 80:8000
     environment:
-      MONGO_URL: mongodb://0.0.0.0:27017/nexus
+      MONGO_URL: mongodb://127.0.0.1:27017/nexus-dating-api
     depends_on:
       - mongo
   mongo:
-    image: mongo
+    image: mongo:latest
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
