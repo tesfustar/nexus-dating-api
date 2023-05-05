@@ -13,7 +13,7 @@ jobs:
       - name: Push Docker image to registry
         run: |
           docker tag my-express-app my-registry/my-express-app
-          docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
+          docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
           docker push my-registry/my-express-app
       - name: SSH into VPS
         uses: appleboy/ssh-action@master
