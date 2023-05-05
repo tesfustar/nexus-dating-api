@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 mongoose.set("strictQuery", true)
 const mongoDbConnection = mongoose
-  .connect('mongodb://0.0.0.0:27017/nexus-dating-api')
+  .connect('mongodb://0.0.0.0:27017/grocery')
   .then(() => console.log("db connected"))
   .catch((err) => console.log(`error ${err}`));
 
