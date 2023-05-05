@@ -1,7 +1,7 @@
 {
-  "name": "grocery_store",
+  "name": "dating_api",
   "version": "1.0.0",
-  "description": "api for grocery store management system",
+  "description": "api for nexus dating api management system",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",

@@ -37,7 +37,7 @@ app.post("/api/upload", uploadImage.single("profile"), (req, res) => {
 });
 
 app.get("/", (req: Request, res: Response) => {
-  res.send("NEXUS DATING APP API Deployment with DB!");
+  res.send("NEXUS DATING APP API Deployment with Mongo DB!");
 });
 
 //routes
