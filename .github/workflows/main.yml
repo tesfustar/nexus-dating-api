@@ -1,30 +1,44 @@
 name: Deploy to VPS
+
 on:
   push:
     branches:
       - main
+
+env:
+  IMAGE_NAME: my-express-app
+  REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+  REGISTRY_URL: ${{ secrets.REGISTRY_USERNAME }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Build Docker image
-        run: docker build -t my-express-app .
-      - name: Push Docker image to registry
-        run: |
-          docker tag my-express-app my-registry/my-express-app
-          docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
-          docker push my-registry/my-express-app
-      - name: SSH into VPS
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_PRIVATE_KEY }}
-          port: ${{ secrets.VPS_SSH_PORT }}
-          passphrase: ${{ secrets.VPS_PASSPHRASE }}
-          script: |
-            docker stop my-express-app || true
-            docker rm my-express-app || true
-            docker pull my-registry/my-express-app
-            docker run -d --restart always --name my-express-app -p 8000:8000 -e MONGO_URL=mongodb://mongo:27017/mydatabase my-registry/my-express-app
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build Docker image
+      run: |
+        docker build -t $IMAGE_NAME .
+
+    - name: Push Docker image to registry
+      run: |
+        docker tag $IMAGE_NAME $REGISTRY_URL/$IMAGE_NAME
+        if docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD $REGISTRY_URL ; then
+          docker push $REGISTRY_URL/$IMAGE_NAME
+        else
+          echo "Login failed"
+          exit 1
+        fi
+
+    - name: SSH to VPS and deploy
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        password: ${{ secrets.VPS_PASSWORD }}
+        script: |
+          docker-compose down
+          docker-compose pull
+          docker-compose up -d
