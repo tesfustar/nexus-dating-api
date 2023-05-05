@@ -1,44 +1,38 @@
-name: Deploy to VPS
+name: CI/CD
 
 on:
   push:
     branches:
       - main
 
-env:
-  IMAGE_NAME: my-express-app
-  REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-  REGISTRY_PASSWORD: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
-  REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Build Docker image
-      run: |
-        docker build -t $IMAGE_NAME .
+      - name: Login to Github Packages registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-    - name: Push Docker image to registry
-      run: |
-        docker tag $IMAGE_NAME $REGISTRY_URL/$IMAGE_NAME
-        if docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD $REGISTRY_URL ; then
-          docker push $REGISTRY_URL/$IMAGE_NAME
-        else
-          echo "Login failed"
-          exit 1
-        fi
+      - name: Build and push Docker image
+        env:
+          IMAGE_TAG: my-express-app:latest
+          REGISTRY_URL: ghcr.io
+        run: |
+          docker build -t $IMAGE_TAG .
+          docker tag $IMAGE_TAG $REGISTRY_URL/${{ github.repository_owner }}/$IMAGE_TAG
+          docker push $REGISTRY_URL/${{ github.repository_owner }}/$IMAGE_TAG
 
-    - name: SSH to VPS and deploy
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USERNAME }}
-        password: ${{ secrets.VPS_PASSWORD }}
-        script: |
-          docker-compose down
-          docker-compose pull
-          docker-compose up -d
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: |
+            docker stop my-express-app || true
+            docker rm my-express-app || true
+            docker pull ghcr.io/${{ github.repository_owner }}/my-express-app:latest
+            docker run -d --name my-express-app -p 8000:8000 ghcr.io/${{ github.repository_owner }}/my-express-app:latest
