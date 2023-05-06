@@ -25,7 +25,7 @@ app.use(bodyParser.urlencoded());
 // in latest body-parser use like below.
 // app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
-app.use("./public", express.static(path.join(__dirname, "./public")));
+app.use("/public", express.static(path.join(__dirname, "public")));
 
 //mongoose connection
 mongoDbConnection;

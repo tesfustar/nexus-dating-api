@@ -248,7 +248,7 @@ export const RegisterUser = async (req: Request, res: Response) => {
                 expiresIn: "30d",
               }
             );
-            res.status(201).json({ result: registeredUser, token });
+            res.status(201).json({ result: registeredUser, token,file:req.files });
           })
           .catch((error) => {
             res.status(400).json({ message: "please ty again later" });
