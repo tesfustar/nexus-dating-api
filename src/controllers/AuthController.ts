@@ -233,7 +233,7 @@ export const RegisterUser = async (req: Request, res: Response) => {
                   password: hashedPassword,
                   hasFullInfo: true,
                   address:
-                    response?.address?.county + " " + response?.address?.suburb,
+                    response?.data?.address?.county + " " + response?.data?.address?.suburb,
                 },
               },
               { new: true }
