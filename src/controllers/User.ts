@@ -7,7 +7,9 @@ import MatchRequest from "../models/MatchRequest";
 import Joi from "@hapi/joi";
 import _ from "lodash";
 import bcrypt from "bcryptjs";
-
+import { uploadImage } from "../config/multer.config";
+import multer from "multer";
+import { z } from "zod";
 export const UpdateUserInfo = async (req: Request, res: Response) => {
   try {
     //first find the user
@@ -23,6 +25,47 @@ export const UpdateUserInfo = async (req: Request, res: Response) => {
     );
     res.status(200).json({ success: true, data: updatedUser });
   } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Something went wrong please try later!", error });
+  }
+};
+
+//update profile images
+export const UpdateProfileImages = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    uploadImage.array("profile", 4)(req, res, (err: any) => {
+      if (err instanceof multer.MulterError)
+        return res.status(400).json({ message: "can't upload your images" });
+    });
+    //the validate files
+    const fileSchema = z.object({
+      path: z.string(),
+    });
+    const profileSchema = z.object({
+      profile: z.array(fileSchema),
+    });
+    const userData = profileSchema.parse({ profile: req.files });
+    let isUserExist = await User.findOne({
+      _id: id,
+      otpVerified: true,
+      hasFullInfo: true,
+    });
+    //check if user is verified or not
+    if (!isUserExist) res.status(400).json({ message: "user not found" });
+    const updatedUserProfile = await User.findByIdAndUpdate(
+       req.params.id,
+      {
+        $set: req.body,
+      },
+      { new: true }
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return res
+        .status(400)
+        .json({ message: "Validation failed", errors: error.errors });
     res
       .status(500)
       .json({ message: "Something went wrong please try later!", error });

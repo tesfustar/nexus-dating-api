@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema<IUser>(
     gender: { type: String },
     birthDate: { type: Date },
     bio: { type: String },
-    profile: { type: [String] },
+    profile: { type: [Object] },
     location: { type: [Number] },
     address: { type: String },
     interest: { type: [String] },

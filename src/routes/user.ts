@@ -10,12 +10,14 @@ import {
   UnBlockUser,
   GetBlockedUsers,
   FilterUser,
-  DeleteMyAccount
+  DeleteMyAccount,
+  UpdateProfileImages
 } from "../controllers/User";
 
 
 
 router.put("/profile/update/:id", UpdateUserInfo);
+router.put("/images/update/:id", UpdateProfileImages); // update profile images images
 router.post("/filter/:id", FilterUser);
 router.get("/my-matches/:id", GetMyMatches);
 router.get("/profile/:id", UserProfile);

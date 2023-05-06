@@ -16,7 +16,7 @@ import admin from "./routes/admin";
 
 const app: Application = express();
 
-//default middlewares
+//default middleware
 dotenv.config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

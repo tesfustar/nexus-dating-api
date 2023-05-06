@@ -72,7 +72,9 @@ export const SignIn = async (req: Request, res: Response) => {
   } catch (error: any) {
     if (error.isJoi === true)
       return res.status(400).json({ message: error.details[0].message });
-    res.status(500).json({ message: "Something went wrong please try later!" + error});
+    res
+      .status(500)
+      .json({ message: "Something went wrong please try later!" + error });
   }
 };
 
@@ -177,8 +179,17 @@ export const RegisterUser = async (req: Request, res: Response) => {
   try {
     uploadImage.array("profile")(req, res, (err: any) => {
       if (err) {
-        return res.status(500).json({ message: "Error uploading file" });
+        return res.status(500).json({ message: "Error uploading file" + err });
       }
+      const files = req.files;
+      // res.status(200).json(files);
+      if (!files || files.length == 0)
+        return res.status(400).json({ message: "profile image is required" });
+      // const profileData = files?.map((file)=>file.path)
+
+      const fileSchema = z.object({
+        path: z.string(),
+      });
       const userSchema = z.object({
         phone: z.string(),
         password: z.string(),
@@ -186,8 +197,8 @@ export const RegisterUser = async (req: Request, res: Response) => {
         displayName: z.string(),
         birthDate: z.string(),
         bio: z.string(),
-        profile: z.string().array(),
-        location: z.number().array(),
+        profile: z.array(fileSchema),
+        location: z.string().array(),
         interest: z.string().array(),
         pets: z.string(),
         lookingFor: z.string(),
@@ -195,31 +206,25 @@ export const RegisterUser = async (req: Request, res: Response) => {
         gender: z.string(),
         communication: z.string(),
       });
-      console.log(req.body);
-      const userData = userSchema.parse(req.body);
 
+      const userData = userSchema.parse({ ...req.body, profile: req.files });
       (async () => {
         const oldUser = await User.findOne({
           phone: userData.phone,
           otpVerified: true,
         });
-
         if (!oldUser) {
           return res
             .status(400)
             .json({ message: "you are not verified user!" });
         }
-
         const hashedPassword = await hashedOtpOrPassword(userData.password);
-
         const address = await axios
           .get(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${userData.location[1]},${userData.location[0]}&key=${process.env.GOOGLE_MAP_API_KEY}`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userData.location[1]}&lon=${userData.location[0]}`
           )
-          .then(async (response) => {
-            const address =
-              response.data.results[0].address_components[2].long_name;
-
+          .then(async (response: any) => {
+            const address = response?.address?.suburb;
             const registeredUser = await User.findByIdAndUpdate(
               oldUser.id,
               {
@@ -228,12 +233,11 @@ export const RegisterUser = async (req: Request, res: Response) => {
                   password: hashedPassword,
                   hasFullInfo: true,
                   address:
-                    response.data.results[0]?.address_components[2]?.long_name,
+                    response?.address?.county + " " + response?.address?.suburb,
                 },
               },
               { new: true }
             );
-
             const token = jwt.sign(
               {
                 phone: registeredUser?.phone,
@@ -241,14 +245,13 @@ export const RegisterUser = async (req: Request, res: Response) => {
               },
               process.env.JWT_KEY as Secret,
               {
-                expiresIn: "24h",
+                expiresIn: "30d",
               }
             );
-
             res.status(201).json({ result: registeredUser, token });
           })
           .catch((error) => {
-            console.log(error);
+            res.status(400).json({ message: "please ty again later" });
           });
       })();
     });

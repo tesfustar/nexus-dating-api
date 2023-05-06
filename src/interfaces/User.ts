@@ -1,5 +1,8 @@
 import { Document, ObjectId } from "mongoose";
 
+interface IProfile{
+  path:string
+}
 export interface IUser extends Document {
   phone: number;
   password: string;
@@ -8,7 +11,7 @@ export interface IUser extends Document {
   gender: string;
   birthDate: Date;
   bio: string;
-  profile: string[];
+  profile: IProfile[];
   location: number[];
   address: string;
   interest: string[];
