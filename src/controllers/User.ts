@@ -34,42 +34,44 @@ export const UpdateUserInfo = async (req: Request, res: Response) => {
 //update profile images
 export const UpdateProfileImages = async (req: Request, res: Response) => {
   const { id } = req.params;
-  try {
-    uploadImage.array("profile", 4)(req, res, (err: any) => {
+  uploadImage.array("profile", 4)(req, res, (err: any) => {
+    try {
       if (err instanceof multer.MulterError)
         return res.status(400).json({ message: "can't upload your images" });
-    });
-    //the validate files
-    const fileSchema = z.object({
-      path: z.string(),
-    });
-    const profileSchema = z.object({
-      profile: z.array(fileSchema),
-    });
-    const userData = profileSchema.parse({ profile: req.files });
-    let isUserExist = await User.findOne({
-      _id: id,
-      otpVerified: true,
-      hasFullInfo: true,
-    });
-    //check if user is verified or not
-    if (!isUserExist) res.status(400).json({ message: "user not found" });
-    const updatedUserProfile = await User.findByIdAndUpdate(
-       req.params.id,
-      {
-        $set: req.body,
-      },
-      { new: true }
-    );
-  } catch (error) {
-    if (error instanceof z.ZodError)
-      return res
-        .status(400)
-        .json({ message: "Validation failed", errors: error.errors });
-    res
-      .status(500)
-      .json({ message: "Something went wrong please try later!", error });
-  }
+      //the validate files
+      const fileSchema = z.object({
+        path: z.string(),
+      });
+      const profileSchema = z.object({
+        profile: z.array(fileSchema),
+      });
+      const userData = profileSchema.parse({ profile: req.files });
+      async () => {
+        let isUserExist = await User.findOne({
+          _id: id,
+          otpVerified: true,
+          hasFullInfo: true,
+        });
+        //check if user is verified or not
+        if (!isUserExist) res.status(400).json({ message: "user not found" });
+        const updatedUserProfile = await User.findByIdAndUpdate(
+          req.params.id,
+          {
+            $set: req.body,
+          },
+          { new: true }
+        );
+      };
+    } catch (error) {
+      if (error instanceof z.ZodError)
+        return res
+          .status(400)
+          .json({ message: "Validation failed", errors: error.errors });
+      res
+        .status(500)
+        .json({ message: "Something went wrong please try later!", error });
+    }
+  });
 };
 //get my matches
 export const GetMyMatches = async (req: Request, res: Response) => {
@@ -169,22 +171,17 @@ export const UserProfile = async (req: Request, res: Response) => {
 
 export const ChangePassword = async (req: Request, res: Response) => {
   try {
-    const schema = Joi.object().keys({
-      old_password: Joi.string().required(),
-      new_password: Joi.string().required(),
+    const userSchema = z.object({
+      old_password: z.string(),
+      new_password: z.string(),
     });
-    const joeResult = await schema.validateAsync(req.body);
-
-    if (joeResult.error)
-      return res
-        .status(400)
-        .json({ message: joeResult.error.details[0].message });
+    const userData = userSchema.parse(req.body);
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "user not found" });
 
     //check old password
     const isPasswordCorrect = await bcrypt.compare(
-      joeResult.old_password,
+      userData.old_password,
       user.password
     );
 
@@ -202,6 +199,10 @@ export const ChangePassword = async (req: Request, res: Response) => {
     );
     res.status(200).json({ message: "password changed successfully" });
   } catch (error) {
+    if (error instanceof z.ZodError)
+      return res
+        .status(400)
+        .json({ message: "Validation failed", errors: error.errors });
     res
       .status(500)
       .json({ message: "Something went wrong please try later!", error });
@@ -367,7 +368,7 @@ export const DeleteMyAccount = async (req: Request, res: Response) => {
     });
     await Conversation.deleteMany({ members: { $in: [req.params.id] } });
     await Notification.deleteMany({ userId: req.params.id });
-    res.status(200).json({ message: "user deleted successfully" });
+    res.status(200).json({ message: "Account deleted successfully" });
   } catch (error) {
     res
       .status(500)

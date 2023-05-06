@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import User from "../models/User";
 import bcrypt from "bcryptjs";
 import jwt, { Secret } from "jsonwebtoken";
-import Joi from "@hapi/joi";
 import _ from "lodash";
 import { z } from "zod";
 import axios from "axios";
@@ -17,24 +16,18 @@ import { uploadImage } from "../config/multer.config";
 //user sign in
 export const SignIn = async (req: Request, res: Response) => {
   try {
-    const schema = Joi.object().keys({
-      phone: Joi.number().required(),
-      password: Joi.string().required(),
+    const userSchema = z.object({
+      phone: z.number(),
+      password: z.string(),
     });
-    const joeResult = await schema.validateAsync(req.body);
+    const userData = userSchema.parse(req.body);
 
-    if (joeResult.error)
-      return res
-        .status(400)
-        .json({ message: joeResult.error.details[0].message });
-
-    const oldUser = await User.findOne({ phone: joeResult.phone });
+    const oldUser = await User.findOne({ phone: userData.phone });
 
     if (!oldUser)
       return res.status(404).json({ message: "User doesn't exist" });
-    console.log(joeResult.password, oldUser.password);
     const isPasswordCorrect = await bcrypt.compare(
-      joeResult.password,
+      userData.password,
       oldUser.password
     );
 
@@ -70,8 +63,10 @@ export const SignIn = async (req: Request, res: Response) => {
 
     res.status(200).json({ result: selectedProp, token });
   } catch (error: any) {
-    if (error.isJoi === true)
-      return res.status(400).json({ message: error.details[0].message });
+    if (error instanceof z.ZodError)
+      return res
+        .status(400)
+        .json({ message: "Validation failed", errors: error.errors });
     res
       .status(500)
       .json({ message: "Something went wrong please try later!" + error });
@@ -98,8 +93,8 @@ export const SignUp = async (req: Request, res: Response) => {
     //send sms
     const generatedOtp = generateOTP();
     const payload = {
-      username: process.env.SMS_USERNAME,
-      password: process.env.SMS_PASSWORD,
+      username: "Nexus63695",
+      password: `?#!n.!.>x"><<!sGv0'JLNl@B&<dQ`,
       to: userData.phone,
       text: `Your Dama Verification code is ${generatedOtp}`,
     };
@@ -175,94 +170,6 @@ export const VerifyOtp = async (req: Request, res: Response) => {
 };
 
 //finish registration
-// export const RegisterUser = async (req: Request, res: Response) => {
-//   try {
-//     uploadImage.array("profile")(req, res, (err: any) => {
-//       if (err) {
-//         return res.status(500).json({ message: "Error uploading file" + err });
-//       }
-//       const files = req.files;
-//       if (!files || files.length == 0)
-//         return res.status(400).json({ message: "profile image is required" });
-
-//       const fileSchema = z.object({
-//         filename: z.string(),
-//       });
-//       const userSchema = z.object({
-//         phone: z.string(),
-//         password: z.string(),
-//         fullName: z.string(),
-//         displayName: z.string(),
-//         birthDate: z.string(),
-//         bio: z.string(),
-//         profile: z.array(fileSchema),
-//         location: z.string().array(),
-//         interest: z.string().array(),
-//         pets: z.string(),
-//         lookingFor: z.string(),
-//         education: z.string(),
-//         gender: z.string(),
-//         communication: z.string(),
-//       });
-
-//       const userData = userSchema.parse({ ...req.body, profile: req.files });
-//       // (async () => {
-//       //   const oldUser = await User.findOne({
-//       //     phone: userData.phone,
-//       //     otpVerified: true,
-//       //   });
-//       //   if (!oldUser) {
-//       //     return res
-//       //       .status(400)
-//       //       .json({ message: "you are not verified user!" });
-//       //   }
-//       //   const hashedPassword = await hashedOtpOrPassword(userData.password);
-//       //   const address = await axios
-//       //     .get(
-//       //       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userData.location[1]}&lon=${userData.location[0]}`
-//       //     )
-//       //     .then(async (response: any) => {
-//       //       const address = response?.address?.suburb;
-//       //       const registeredUser = await User.findByIdAndUpdate(
-//       //         oldUser.id,
-//       //         {
-//       //           $set: {
-//       //             ...userData,
-//       //             password: hashedPassword,
-//       //             hasFullInfo: true,
-//       //             address:
-//       //               response?.data?.address?.county + " " + response?.data?.address?.suburb,
-//       //           },
-//       //         },
-//       //         { new: true }
-//       //       );
-//       //       const token = jwt.sign(
-//       //         {
-//       //           phone: registeredUser?.phone,
-//       //           isAdmin: registeredUser?.isAdmin,
-//       //         },
-//       //         process.env.JWT_KEY as Secret,
-//       //         {
-//       //           expiresIn: "30d",
-//       //         }
-//       //       );
-//       //       res.status(201).json({ result: registeredUser, token,file:req.files });
-//       //     })
-//       //     .catch((error) => {
-//       //       res.status(400).json({ message: "please ty again later" });
-//       //     });
-//       // })
-//       // ();
-//     });
-//   } catch (error) {
-//     if (error instanceof z.ZodError) {
-//       return res
-//         .status(400)
-//         .json({ message: "Validation failed", errors: error.errors });
-//     }
-//     res.status(500).json({ message: "Internal server error" + error });
-//   }
-// };
 
 export const RegisterUser = async (req: Request, res: Response) => {
   uploadImage.array("profile")(req, res, (err: any) => {
@@ -323,7 +230,6 @@ export const RegisterUser = async (req: Request, res: Response) => {
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userData.location[1]}&lon=${userData.location[0]}`
           )
           .then(async (response: any) => {
-            const address = response?.address?.suburb;
             const registeredUser = await User.findByIdAndUpdate(
               oldUser.id,
               {
@@ -334,7 +240,7 @@ export const RegisterUser = async (req: Request, res: Response) => {
                   address:
                     response?.data?.address?.county +
                     " " +
-                    response?.data?.address?.suburb,
+                    response?.data?.address?.suburb && response?.data?.address?.suburb,
                 },
               },
               { new: true }
@@ -366,4 +272,127 @@ export const RegisterUser = async (req: Request, res: Response) => {
       res.status(500).json({ message: "Internal server error" + error });
     }
   });
+};
+
+//forgot password has three step 
+
+export const ForgotPassword = async (req: Request, res: Response) => {
+  try {
+    const userSchema = z.object({
+      phone: z.number(),
+    });
+    const userData = userSchema.parse(req.body);
+    //check if user is exist or not
+    const oldUser = await User.findOne({
+      phone: userData.phone,
+      otpVerified: true,
+      hasFullInfo: true,
+    });
+    if (!oldUser) return res.status(404).json({ message: "user not found!" });
+    //send otp sms
+    const generatedOtp = generateOTP();
+    const payload = {
+      username: "Nexus63695",
+      password: `?#!n.!.>x"><<!sGv0'JLNl@B&<dQ`,
+      to: userData.phone,
+      text: `Your Dama Verification code is ${generatedOtp}`,
+    };
+    const sms_otp = await axios.post(process.env.SMS_URL!, payload);
+    const hashedOtp = await hashedOtpOrPassword(generatedOtp.toString());
+    //hash and store otp
+    await Otp.create({
+      phone: userData.phone,
+      code: hashedOtp,
+      isForForget: true,
+    });
+    res.status(200).json({
+      message: "otp sent to your phone",
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return res
+        .status(400)
+        .json({ message: "Validation failed", errors: error.errors });
+    res.status(500).json({ message: "Internal server error" + error });
+  }
+};
+
+//verify forgot password otp
+
+export const ForgotPasswordOtpVerify = async (req: Request, res: Response) => {
+  try {
+    const userSchema = z.object({
+      phone: z.number(),
+      code: z.string(),
+    });
+    const userData = userSchema.parse(req.body);
+    //find user otp
+    const userOtp = await Otp.findOne({
+      phone: userData.phone,
+      isUsed: false,
+      isForForget: true,
+    }).sort({
+      createdAt: -1,
+    });
+    if (!userOtp) return res.status(403).json({ message: "Invalid gateway" });
+    //check if ot is correct
+    const isOtpCorrect = await bcrypt.compare(userData.code, userOtp.code);
+
+    if (!isOtpCorrect)
+      return res.status(400).json({ message: "Invalid Otp code" });
+    //update otp
+    const updateOtp = await Otp.findByIdAndUpdate(
+      userOtp._id,
+      { isUsed: true },
+      { new: true }
+    );
+    res.status(200).json({
+      message: "successfully verified",
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return res
+        .status(400)
+        .json({ message: "Validation failed", errors: error.errors });
+    res.status(500).json({ message: "Internal server error" + error });
+  }
+};
+
+//set new password
+
+export const SetNewPassword = async (req: Request, res: Response) => {
+  try {
+    const userSchema = z.object({
+      phone: z.number(),
+      password: z.string(),
+    });
+    const userData = userSchema.parse(req.body);
+    //check if the user is verified user or not
+    const oldUser = await User.findOne({
+      phone: userData.phone,
+      otpVerified: true,
+      hasFullInfo: true,
+    });
+    if (!oldUser)
+      return res.status(400).json({ message: "you are not verified user!" });
+
+    //has password
+    const hashedPassword = await hashedOtpOrPassword(userData.password);
+    const updateUserPassword = await User.findByIdAndUpdate(
+      oldUser.id,
+      {
+        $set: { password: hashedPassword },
+      },
+      { new: true }
+    );
+    res
+      .status(200)
+      .json({ message: "your password changed!", data: updateUserPassword });
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return res
+        .status(400)
+        .json({ message: "Validation failed", errors: error.errors });
+    res.status(500).json({ message: "Internal server error" + error });
+  }
 };
