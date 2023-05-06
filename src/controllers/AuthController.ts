@@ -188,7 +188,7 @@ export const RegisterUser = async (req: Request, res: Response) => {
       // const profileData = files?.map((file)=>file.path)
 
       const fileSchema = z.object({
-        path: z.string(),
+        filename: z.string(),
       });
       const userSchema = z.object({
         phone: z.string(),
