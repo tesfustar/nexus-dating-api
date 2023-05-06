@@ -175,17 +175,104 @@ export const VerifyOtp = async (req: Request, res: Response) => {
 };
 
 //finish registration
+// export const RegisterUser = async (req: Request, res: Response) => {
+//   try {
+//     uploadImage.array("profile")(req, res, (err: any) => {
+//       if (err) {
+//         return res.status(500).json({ message: "Error uploading file" + err });
+//       }
+//       const files = req.files;
+//       if (!files || files.length == 0)
+//         return res.status(400).json({ message: "profile image is required" });
+
+//       const fileSchema = z.object({
+//         filename: z.string(),
+//       });
+//       const userSchema = z.object({
+//         phone: z.string(),
+//         password: z.string(),
+//         fullName: z.string(),
+//         displayName: z.string(),
+//         birthDate: z.string(),
+//         bio: z.string(),
+//         profile: z.array(fileSchema),
+//         location: z.string().array(),
+//         interest: z.string().array(),
+//         pets: z.string(),
+//         lookingFor: z.string(),
+//         education: z.string(),
+//         gender: z.string(),
+//         communication: z.string(),
+//       });
+
+//       const userData = userSchema.parse({ ...req.body, profile: req.files });
+//       // (async () => {
+//       //   const oldUser = await User.findOne({
+//       //     phone: userData.phone,
+//       //     otpVerified: true,
+//       //   });
+//       //   if (!oldUser) {
+//       //     return res
+//       //       .status(400)
+//       //       .json({ message: "you are not verified user!" });
+//       //   }
+//       //   const hashedPassword = await hashedOtpOrPassword(userData.password);
+//       //   const address = await axios
+//       //     .get(
+//       //       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userData.location[1]}&lon=${userData.location[0]}`
+//       //     )
+//       //     .then(async (response: any) => {
+//       //       const address = response?.address?.suburb;
+//       //       const registeredUser = await User.findByIdAndUpdate(
+//       //         oldUser.id,
+//       //         {
+//       //           $set: {
+//       //             ...userData,
+//       //             password: hashedPassword,
+//       //             hasFullInfo: true,
+//       //             address:
+//       //               response?.data?.address?.county + " " + response?.data?.address?.suburb,
+//       //           },
+//       //         },
+//       //         { new: true }
+//       //       );
+//       //       const token = jwt.sign(
+//       //         {
+//       //           phone: registeredUser?.phone,
+//       //           isAdmin: registeredUser?.isAdmin,
+//       //         },
+//       //         process.env.JWT_KEY as Secret,
+//       //         {
+//       //           expiresIn: "30d",
+//       //         }
+//       //       );
+//       //       res.status(201).json({ result: registeredUser, token,file:req.files });
+//       //     })
+//       //     .catch((error) => {
+//       //       res.status(400).json({ message: "please ty again later" });
+//       //     });
+//       // })
+//       // ();
+//     });
+//   } catch (error) {
+//     if (error instanceof z.ZodError) {
+//       return res
+//         .status(400)
+//         .json({ message: "Validation failed", errors: error.errors });
+//     }
+//     res.status(500).json({ message: "Internal server error" + error });
+//   }
+// };
+
 export const RegisterUser = async (req: Request, res: Response) => {
-  try {
-    uploadImage.array("profile")(req, res, (err: any) => {
+  uploadImage.array("profile")(req, res, (err: any) => {
+    try {
       if (err) {
         return res.status(500).json({ message: "Error uploading file" + err });
       }
       const files = req.files;
-      // res.status(200).json(files);
       if (!files || files.length == 0)
         return res.status(400).json({ message: "profile image is required" });
-      // const profileData = files?.map((file)=>file.path)
 
       const fileSchema = z.object({
         filename: z.string(),
@@ -209,6 +296,18 @@ export const RegisterUser = async (req: Request, res: Response) => {
 
       const userData = userSchema.parse({ ...req.body, profile: req.files });
       (async () => {
+        //check if he already finished registration
+        const isRegisteredUser = await User.findOne({
+          phone: userData.phone,
+          otpVerified: true,
+          hasFullInfo: true,
+        });
+        if (isRegisteredUser) {
+          return res
+            .status(400)
+            .json({ message: "you already registered user!" });
+        }
+        //check if it is verified user
         const oldUser = await User.findOne({
           phone: userData.phone,
           otpVerified: true,
@@ -233,7 +332,9 @@ export const RegisterUser = async (req: Request, res: Response) => {
                   password: hashedPassword,
                   hasFullInfo: true,
                   address:
-                    response?.data?.address?.county + " " + response?.data?.address?.suburb,
+                    response?.data?.address?.county +
+                    " " +
+                    response?.data?.address?.suburb,
                 },
               },
               { new: true }
@@ -248,19 +349,21 @@ export const RegisterUser = async (req: Request, res: Response) => {
                 expiresIn: "30d",
               }
             );
-            res.status(201).json({ result: registeredUser, token,file:req.files });
+            res
+              .status(201)
+              .json({ result: registeredUser, token, file: req.files });
           })
           .catch((error) => {
             res.status(400).json({ message: "please ty again later" });
           });
       })();
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res
-        .status(400)
-        .json({ message: "Validation failed", errors: error.errors });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res
+          .status(400)
+          .json({ message: "Validation failed", errors: error.errors });
+      }
+      res.status(500).json({ message: "Internal server error" + error });
     }
-    res.status(500).json({ message: "Internal server error" + error });
-  }
+  });
 };

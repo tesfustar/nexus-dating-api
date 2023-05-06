@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 import paginate from "mongoose-paginate-v2";
 import { IUser } from "../interfaces/User";
 
+
+const ProfileSchema  = new mongoose.Schema({
+  filename:{ type: String }
+})
 const userSchema = new mongoose.Schema<IUser>(
   {
     phone: { type: Number, unique: true },
@@ -11,7 +15,7 @@ const userSchema = new mongoose.Schema<IUser>(
     gender: { type: String },
     birthDate: { type: Date },
     bio: { type: String },
-    profile: { type: [Object] },
+    profile: { type: [ProfileSchema] },
     location: { type: [Number] },
     address: { type: String },
     interest: { type: [String] },
