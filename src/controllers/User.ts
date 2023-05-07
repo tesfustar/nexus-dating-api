@@ -438,6 +438,16 @@ export const DeleteMyAccount = async (req: Request, res: Response) => {
     });
     await Conversation.deleteMany({ members: { $in: [req.params.id] } });
     await Notification.deleteMany({ userId: req.params.id });
+    //delete his images
+    deletedUser?.profile?.forEach((profileImage: any) => {
+      const imagePath = path.resolve(
+        __dirname,
+        "..",
+        "public",
+        profileImage.filename
+      );
+      fs.unlinkSync(imagePath);
+    });
     res.status(200).json({ message: "Account deleted successfully" });
   } catch (error) {
     res

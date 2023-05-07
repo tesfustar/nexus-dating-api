@@ -4,27 +4,27 @@ import User from "../models/User";
 import Messages from "../models/Messages";
 import Conversation from "../models/Conversation";
 import Notification from "../models/Notification";
-
+import fs from "fs";
+import path from "path";
 //for dashboard Data
-export const DashboardData = async (req:Request, res:Response) => {
+export const DashboardData = async (req: Request, res: Response) => {
   try {
     const users = await User.find().countDocuments();
     res.status(200).json({ success: true, users: users });
   } catch (error) {
     res
-    .status(500)
-    .json({ message: "Something went wrong please try later!", error });
+      .status(500)
+      .json({ message: "Something went wrong please try later!", error });
   }
 };
 
 //get all users
 
-export const UserDetailInfo = async (req:Request, res:Response) => {
+export const UserDetailInfo = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const user = await User.findById(id);
-    if (!user)
-    return res.status(400).json({ message: "user not found" });
+    if (!user) return res.status(400).json({ message: "user not found" });
     const userMatchesCount = await MatchRequest.find({
       $or: [{ senderId: id }, { receiverId: id }],
       isAccepted: true,
@@ -46,13 +46,13 @@ export const UserDetailInfo = async (req:Request, res:Response) => {
     });
   } catch (error) {
     res
-    .status(500)
-    .json({ message: "Something went wrong please try later!", error });
+      .status(500)
+      .json({ message: "Something went wrong please try later!", error });
   }
 };
 
 //get all users
-export const GetAllUsers = async (req:Request, res:Response) => {
+export const GetAllUsers = async (req: Request, res: Response) => {
   try {
     const allUsers = await User.find();
     res.status(200).json({ success: true, data: allUsers });
@@ -64,7 +64,7 @@ export const GetAllUsers = async (req:Request, res:Response) => {
 };
 
 //get single user
-export const GetSingleUser = async (req:Request, res:Response) => {
+export const GetSingleUser = async (req: Request, res: Response) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(400).json({ message: "user not found! 😥" });
@@ -76,16 +76,26 @@ export const GetSingleUser = async (req:Request, res:Response) => {
   }
 };
 
-
 //delete all users
-export const DeleteAllUsers = async (req:Request, res:Response) => {
+export const DeleteAllUsers = async (req: Request, res: Response) => {
   try {
     await User.deleteMany();
     await MatchRequest.deleteMany();
     await Notification.deleteMany();
     await Messages.deleteMany();
     await Conversation.deleteMany();
-    res.status(200).json({ message: "all users deleted and database is cleared" });
+    const publicFolderPath = path.resolve(__dirname, "..", "public");
+    fs.readdir(publicFolderPath, (err, files) => {
+      if (err) throw err;
+      for (const file of files) {
+        fs.unlinkSync(path.join(publicFolderPath, file));
+      }
+      res
+        .status(200)
+        .json({
+          message: "all users and images deleted and database is cleared",
+        });
+    });
   } catch (error) {
     res
       .status(500)
@@ -94,7 +104,7 @@ export const DeleteAllUsers = async (req:Request, res:Response) => {
 };
 
 //delete single user
-export const DeleteUser = async (req:Request, res:Response) => {
+export const DeleteUser = async (req: Request, res: Response) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "user not found" });
