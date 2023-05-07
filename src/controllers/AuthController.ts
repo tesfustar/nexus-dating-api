@@ -96,7 +96,7 @@ export const SignUp = async (req: Request, res: Response) => {
       username: "Nexus63695",
       password: `?#!n.!.>x"><<!sGv0'JLNl@B&<dQ`,
       to: userData.phone,
-      text: `Your Dama Verification code is ${generatedOtp}`,
+      text: `Your Nexus Verification code is ${generatedOtp}`,
     };
     const sms_otp = await axios.post(process.env.SMS_URL!, payload);
     const hashedOtp = await hashedOtpOrPassword(generatedOtp.toString());
@@ -295,7 +295,7 @@ export const ForgotPassword = async (req: Request, res: Response) => {
       username: "Nexus63695",
       password: `?#!n.!.>x"><<!sGv0'JLNl@B&<dQ`,
       to: userData.phone,
-      text: `Your Dama Verification code is ${generatedOtp}`,
+      text: `${generatedOtp} is your Nexus password reset code`,
     };
     const sms_otp = await axios.post(process.env.SMS_URL!, payload);
     const hashedOtp = await hashedOtpOrPassword(generatedOtp.toString());

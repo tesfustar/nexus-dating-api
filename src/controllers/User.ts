@@ -10,6 +10,8 @@ import bcrypt from "bcryptjs";
 import { uploadImage } from "../config/multer.config";
 import multer from "multer";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
 export const UpdateUserInfo = async (req: Request, res: Response) => {
   try {
     //first find the user
@@ -34,34 +36,71 @@ export const UpdateUserInfo = async (req: Request, res: Response) => {
 //update profile images
 export const UpdateProfileImages = async (req: Request, res: Response) => {
   const { id } = req.params;
-  uploadImage.array("profile", 4)(req, res, (err: any) => {
+  uploadImage.array("profile", 4)(req, res, async (err: any) => {
     try {
       if (err instanceof multer.MulterError)
         return res.status(400).json({ message: "can't upload your images" });
       //the validate files
       const fileSchema = z.object({
-        path: z.string(),
+        filename: z.string(),
       });
       const profileSchema = z.object({
         profile: z.array(fileSchema),
+        isProfile: z.string().optional(),
       });
-      const userData = profileSchema.parse({ profile: req.files });
-      async () => {
-        let isUserExist = await User.findOne({
-          _id: id,
-          otpVerified: true,
-          hasFullInfo: true,
-        });
-        //check if user is verified or not
-        if (!isUserExist) res.status(400).json({ message: "user not found" });
-        const updatedUserProfile = await User.findByIdAndUpdate(
-          req.params.id,
-          {
-            $set: req.body,
-          },
+      const userData = profileSchema.parse({ ...req.body, profile: req.files });
+      let isUserExist = await User.findOne({
+        _id: id,
+        otpVerified: true,
+        hasFullInfo: true,
+      });
+      //check if user is verified or not
+      if (!isUserExist)
+        return res.status(400).json({ message: "user not found" });
+
+      if (userData.isProfile == "Logo") {
+        //  Update user's profile at first array
+        const newProfile = userData.profile[0];
+        await User.findByIdAndUpdate(
+          id,
+          { $push: { profile: { $each: [newProfile], $position: 0 } } },
           { new: true }
         );
-      };
+        //the rest at the end of the array
+        if (userData.profile.length > 1) {
+          await User.findByIdAndUpdate(
+            id,
+            {
+              $push: {
+                profile: {
+                  $each: userData.profile.slice(1),
+                  $position: userData.profile.length - 1,
+                },
+              },
+            },
+            { new: true }
+          );
+        }
+        res.status(200).json({ message: "profile image updated successfully" });
+      } else {
+        //push image at the last of array
+        const profileLength = isUserExist.profile.length;
+        if (profileLength >= 4) {
+          return res
+            .status(400)
+            .json({ message: "You can't upload more than 4 profile images" });
+        }
+        for (const image of userData.profile) {
+          await User.findByIdAndUpdate(
+            id,
+            { $push: { profile: image } },
+            { new: true }
+          );
+        }
+        res
+          .status(200)
+          .json({ message: "profile image uploaded successfully" });
+      }
     } catch (error) {
       if (error instanceof z.ZodError)
         return res
@@ -72,6 +111,37 @@ export const UpdateProfileImages = async (req: Request, res: Response) => {
         .json({ message: "Something went wrong please try later!", error });
     }
   });
+};
+
+//delete profile image
+export const DeleteProfileImage = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const { imageId } = req.body;
+  try {
+    // first find the user
+    const user = await User.findById(userId);
+    if (!user) return res.status(400).json({ message: "user not found!" });
+    // find the image
+    const image: any = user?.profile.find(
+      (profileImage: any) => profileImage._id == imageId
+    );
+    //remove the image from db
+    const updateUser = await User.findByIdAndUpdate(
+      userId,
+      { $pull: { profile: { _id: imageId } } },
+      { new: true }
+    );
+    // remove the image from the server
+    const imagePath = path.resolve(__dirname, "..", "public", image?.filename); // Assuming the image files are stored in the 'public/images' folder
+    fs.unlinkSync(imagePath); // Delete the image file from the folder
+    res
+      .status(200)
+      .json({ message: "profile image deleted successfully", data: image });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Something went wrong please try later!", error });
+  }
 };
 //get my matches
 export const GetMyMatches = async (req: Request, res: Response) => {
