@@ -63,7 +63,7 @@ export const SendMatchRequest = async (req: Request, res: Response) => {
       const saveConversation = await conversation.save();
       const notification = new Notification({
         userId: joeResult.receiverId,
-        profile: senderUser.profile[0],
+        profile: senderUser.profile[0]?.filename,
         message: `you have new like from ${senderUser.fullName}`,
       });
       const saveNotification = await notification.save();
@@ -81,7 +81,7 @@ export const SendMatchRequest = async (req: Request, res: Response) => {
     });
     const notification = new Notification({
       userId: joeResult.receiverId,
-      profile: senderUser.profile[0],
+      profile: senderUser.profile[0]?.filename,
       message: `you have new like from ${senderUser.fullName}`,
     });
     const saveNotification = await notification.save();
@@ -122,7 +122,7 @@ export const AcceptMatchRequest = async (req: Request, res: Response) => {
     );
     const notification = new Notification({
       userId: matchRequest.senderId,
-      profile: receiverUser.profile[0],
+      profile: receiverUser.profile[0]?.filename,
       message: `${receiverUser.fullName} accept your request, you can start chatting! 😍`,
     });
 

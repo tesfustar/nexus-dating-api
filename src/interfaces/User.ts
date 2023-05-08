@@ -1,7 +1,7 @@
 import { Document, ObjectId } from "mongoose";
 
 interface IProfile{
-  path:string
+  filename:string
 }
 export interface IUser extends Document {
   phone: number;
