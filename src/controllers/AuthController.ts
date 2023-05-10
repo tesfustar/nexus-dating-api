@@ -239,8 +239,8 @@ export const RegisterUser = async (req: Request, res: Response) => {
                   hasFullInfo: true,
                   address:response?.data?.address?.county ? response?.data?.address?.county + 
                   response?.data?.address?.suburb ? response?.data?.address?.suburb :
-                  response?.data?.address?.state_district ? response?.data?.address?.state_district : "" 
-                  : response?.data?.display_name
+                  response?.data?.address?.state_district ? response?.data?.address?.state_district : "unknown" 
+                  : response?.data?.display_name ? response?.data?.display_name : "unknown"
                 },
               },
               { new: true }
