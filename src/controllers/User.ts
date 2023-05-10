@@ -164,17 +164,18 @@ export const GetMyMatches = async (req: Request, res: Response) => {
         { pets: { $eq: user?.pets } },
         { communication: { $eq: user?.communication } },
 
-        //   location: {
-        //     $near: {
-        //       $geometry: {
-        //         type: "Point",
-        //         coordinates: [user.location[0], user.location[1]],
-        //       },
-        //       $minDistance: 50,
-        //       $maxDistance: 15000,
-        //     },
-        //   },
-        // },
+        {
+          location: {
+            $near: {
+              $geometry: {
+                type: "Point",
+                coordinates: [user.location[0], user.location[1]],
+              },
+              $minDistance: 50,
+              $maxDistance: 15000,
+            },
+          },
+        },
       ],
       _id: { $not: { $in: matchRequest } },
       gender: { $ne: user.gender.toLowerCase() },
@@ -183,7 +184,6 @@ export const GetMyMatches = async (req: Request, res: Response) => {
       .map((value) => ({ value, sort: Math.random() }))
       .sort((a, b) => a.sort - b.sort)
       .map(({ value }) => value);
-    9;
     res.status(200).json({ success: true, data: randomizeUsers });
   } catch (error) {
     res
@@ -387,11 +387,21 @@ export const FilterUser = async (req: Request, res: Response) => {
 
     if (!user) return res.status(404).json({ message: "user not found" });
 
+    //find his matches
+    const matchRequest = (
+      await MatchRequest.find({
+        $or: [{ senderId: req.params.id }, { receiverId: req.params.id }],
+        isAccepted: true,
+      })
+    )
+      ?.map((item) => [item.receiverId, item.senderId])
+      ?.flat();
     const lat = user.location[1];
     const long = user.location[0];
 
     const filteredMatched = await User.find({
       gender: { $ne: user.gender.toLowerCase() },
+      _id: { $not: { $in: matchRequest } },
       $or: [
         { interest: interest ? { $in: interest } : { $in: [""] } },
         {
@@ -417,7 +427,13 @@ export const FilterUser = async (req: Request, res: Response) => {
         : { $exists: true },
     });
 
-    res.status(200).json({ success: true, data: filteredMatched });
+    //randomize the results
+    const randomizeUsers = filteredMatched
+    .map((value) => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value);
+
+    res.status(200).json({ success: true, data: randomizeUsers });
   } catch (error) {
     res
       .status(500)
@@ -437,7 +453,7 @@ export const DeleteMyAccount = async (req: Request, res: Response) => {
       $or: [{ senderId: req.params.id }, { receiverId: req.params.id }],
     });
     await Conversation.deleteMany({ members: { $in: [req.params.id] } });
-    await Notification.deleteMany({ userId: req.params.id });
+    // await Notification.deleteMany({ userId: req.params.id });
     //delete his images
     deletedUser?.profile?.forEach((profileImage: any) => {
       const imagePath = path.resolve(
