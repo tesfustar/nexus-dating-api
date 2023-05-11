@@ -164,18 +164,18 @@ export const GetMyMatches = async (req: Request, res: Response) => {
         { pets: { $eq: user?.pets } },
         { communication: { $eq: user?.communication } },
 
-        {
-          location: {
-            $near: {
-              $geometry: {
-                type: "Point",
-                coordinates: [user.location[0], user.location[1]],
-              },
-              $minDistance: 50,
-              $maxDistance: 15000,
-            },
-          },
-        },
+        // {
+        //   location: {
+        //     $near: {
+        //       $geometry: {
+        //         type: "Point",
+        //         coordinates: [user.location[0], user.location[1]],
+        //       },
+        //       $minDistance: 50,
+        //       $maxDistance: 15000,
+        //     },
+        //   },
+        // },
       ],
       _id: { $not: { $in: matchRequest } },
       gender: { $ne: user.gender.toLowerCase() },
