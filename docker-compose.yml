@@ -10,7 +10,7 @@ services:
     ports:
       - 80:8000
     environment:
-      MONGO_URL: mongodb://abdi:abdi9503@31.220.18.115:27017/nexus-dating-api
+      MONGO_URL: mongodb://abdi:abdi9503@31.220.18.115:27017/nexus-dating
     depends_on:
       - mongo
   mongo:
